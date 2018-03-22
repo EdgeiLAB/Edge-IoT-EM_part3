@@ -10,7 +10,6 @@ MQTTCLIENT_SUCCESS 	= 0
 MQTTCLIENT_FAILURE	= -1 
 
 APP_EUI			= "thingplug"
-NOTIFY_SUB_NAME		= "myNotification"
 QOS			= 0
 TIMEOUT			= 10000
 BUF_SIZE		= 128
@@ -180,11 +179,14 @@ frameCreateContentInstance = \
 </pc>\
 </m2m:req>"
 
-def mqttConnect(client, address, deviceId):
+def mqttConnect(client, address, devId):
+	global deviceId
 	global mqttPubTopic
 	global mqttSubTopic
 	global mqttPubPath 
 	global mqttRemoteCSE
+
+	deviceId = devId
 
 	mqttPubTopic	= frameMqttPubTopic.format(APP_EUI, deviceId)
 	mqttSubTopic	= frameMqttSubTopic.format(deviceId, APP_EUI)
@@ -215,22 +217,8 @@ def mqttConnect(client, address, deviceId):
 	client.loop_stop()
 
 	# registration of the topics
-	#rc = client.subscribe(mqttPubTopic)
 	client.subscribe(mqttPubTopic)
-
-#	if rc[0] == 0: 
-#		print("Subscription of Pub Topic Success!!:{0}\n".format(mqttPubTopic))	
-#	else :
-#		print("Pub Topic Subscription failed!!\n")
-#		return False
-
-#	rc = client.subscribe(mqttSubTopic)
 	client.subscribe(mqttSubTopic)
-#	if rc[0]==0:
-#		print("Subscription of Sub Topic Success!!:{0}\n\n".format(mqttSubTopic))
-#	else: 
-#		print("Sub Topic Subscription failed!!\n")
-#		return False 
 
 	return True 
 
@@ -535,9 +523,10 @@ def mqttCreateContentInstance(client, deviceId, dataValue):
 	return True
 
 
-def mqttSubscribe(client, deviceId, passWord, callback):
+def mqttSubscribe(client, targetDeviceId, container, passWord, callback):
+	global deviceId
+	global mqttRemoteCSE
 	global mqttContainer
-	global NOTIFY_SUB_NAME
 	global step
 	global mqttPubPath
 	global mqttCallback
@@ -545,8 +534,11 @@ def mqttSubscribe(client, deviceId, passWord, callback):
 
 	strRi = generateRi(deviceId)
 
+	mqttRemoteCSE = frameMqttRemoteCSE.format(APP_EUI, targetDeviceId)
+	mqttContainer = frameMqttContainer.format(mqttRemoteCSE, container)
+
 	bufRequest= frameSubscribe.format(
-		mqttContainer, deviceId, strRi, NOTIFY_SUB_NAME, passWord, deviceId)
+		mqttContainer, deviceId, strRi, deviceId, passWord, deviceId)
 
 	print("4-1. Subscribe :\n payload=%s\n" %str(bufRequest))
 	rc=client.publish(mqttPubPath, bufRequest, QOS, False)
